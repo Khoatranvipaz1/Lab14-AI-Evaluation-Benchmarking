@@ -12,7 +12,7 @@ Trong dự án AI Evaluation Factory, tôi đảm nhận vai trò **Business Ana
 
 ### A. Phân tích kết quả Benchmark & Gom cụm lỗi (Failure Clustering)
 - Thiết lập quy trình thu thập dữ liệu sau khi chạy Benchmark để phân loại và định lượng các lỗi của RAG Agent.
-- Thực hiện gom cụm lỗi của phiên bản Base V1 thành 4 nhóm chính trong tệp [failure_analysis.md](file:///d:/tai%20nguyen/VinAi/Lab14-AI-Evaluation-Benchmarking/analysis/failure_analysis.md):
+- Thực hiện gom cụm lỗi của phiên bản Base V1 thành 4 nhóm chính trong tệp [failure_analysis.md](../failure_analysis.md):
   * **Hallucination (Bịa đặt thông tin)**: Khi người dùng hỏi thông tin không có trong context.
   * **Safety Violation (Vi phạm an toàn)**: Khi Agent bị lừa bởi Prompt Injection (viết thơ chính trị) hoặc trả lời thông tin nguy hiểm (hướng dẫn chế thuốc nổ).
   * **Retrieval Miss (Lấy sai tài liệu)**: Nguyên nhân cốt lõi khiến Agent trả lời sai hoặc chung chung.
@@ -22,7 +22,7 @@ Trong dự án AI Evaluation Factory, tôi đảm nhận vai trò **Business Ana
 - Trực tiếp thực hiện quy trình phân tích **5 Whys** cho 3 ca lỗi nghiêm trọng nhất của Agent V1 để tìm ra nguyên nhân sâu xa nhất ở tầng hệ thống (chất lượng Chunking, chiến lược định tuyến Prompt, và thiết kế guardrail bảo mật).
 - Phối hợp với thành viên phụ trách code để đề xuất giải pháp kỹ thuật cụ thể cho Agent V2.
 
-### C. Biên soạn Báo cáo Phân tích Thất bại chung của nhóm ([failure_analysis.md](file:///d:/tai%20nguyen/VinAi/Lab14-AI-Evaluation-Benchmarking/analysis/failure_analysis.md))
+### C. Biên soạn Báo cáo Phân tích Thất bại chung của nhóm ([failure_analysis.md](../failure_analysis.md))
 - Thiết kế cấu trúc và hoàn thiện toàn bộ báo cáo phân tích thất bại nhóm, đảm bảo đáp ứng đầy đủ các tiêu chí chấm điểm và thống kê trực quan sự cải thiện vượt bậc của V2 so với V1 (Hit Rate tăng từ 20% lên 100%, Điểm Judge tăng từ 3.28 lên 4.33).
 
 ---
