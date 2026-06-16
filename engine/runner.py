@@ -11,9 +11,11 @@ class BenchmarkRunner:
 
     async def run_single_test(self, test_case: Dict) -> Dict:
         start_time = time.perf_counter()
+
+        agent_input = self._build_agent_input(test_case)
         
         # 1. Gọi Agent
-        response = await self.agent.query(test_case["question"])
+        response = await self.agent.query(agent_input)
         latency = time.perf_counter() - start_time
         
         # 2. Chạy RAGAS metrics
@@ -27,13 +29,26 @@ class BenchmarkRunner:
         )
         
         return {
+            "test_case_id": test_case.get("id"),
             "test_case": test_case["question"],
+            "expected_retrieval_ids": test_case.get("expected_retrieval_ids", []),
             "agent_response": response["answer"],
+            "retrieved_ids": response.get("retrieved_ids", []),
             "latency": latency,
             "ragas": ragas_scores,
             "judge": judge_result,
             "status": "fail" if judge_result["final_score"] < 3 else "pass"
         }
+
+    @staticmethod
+    def _build_agent_input(test_case: Dict) -> str:
+        if "conversation" not in test_case:
+            return test_case["question"]
+
+        return "\n".join(
+            f"{turn['role']}: {turn['content']}"
+            for turn in test_case["conversation"]
+        )
 
     async def run_all(self, dataset: List[Dict], batch_size: int = 5) -> List[Dict]:
         """

@@ -1,18 +1,31 @@
 import asyncio
 import json
 import os
+import sys
 import time
 from engine.runner import BenchmarkRunner
 from agent.main_agent import MainAgent
+from engine.retrieval_eval import RetrievalEvaluator
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 # Giả lập các components Expert
 class ExpertEvaluator:
+    def __init__(self):
+        self.retrieval_evaluator = RetrievalEvaluator()
+
     async def score(self, case, resp): 
-        # Giả lập tính toán Hit Rate và MRR
+        retrieval_result = self.retrieval_evaluator.evaluate_case(
+            expected_ids=case.get("expected_retrieval_ids", []),
+            retrieved_ids=resp.get("retrieved_ids", []),
+            top_k=3,
+        )
+
         return {
             "faithfulness": 0.9, 
             "relevancy": 0.8,
-            "retrieval": {"hit_rate": 1.0, "mrr": 0.5}
+            "retrieval": retrieval_result
         }
 
 class MultiModelJudge:
@@ -41,11 +54,27 @@ async def run_benchmark_with_results(agent_version: str):
     results = await runner.run_all(dataset)
 
     total = len(results)
+    scored_retrieval_results = [
+        r["ragas"]["retrieval"]
+        for r in results
+        if r["ragas"]["retrieval"].get("is_scored")
+    ]
+
+    def avg_retrieval_metric(metric_name: str) -> float:
+        values = [
+            item[metric_name]
+            for item in scored_retrieval_results
+            if isinstance(item.get(metric_name), (int, float))
+        ]
+        return sum(values) / len(values) if values else 0.0
+
     summary = {
         "metadata": {"version": agent_version, "total": total, "timestamp": time.strftime("%Y-%m-%d %H:%M:%S")},
         "metrics": {
             "avg_score": sum(r["judge"]["final_score"] for r in results) / total,
-            "hit_rate": sum(r["ragas"]["retrieval"]["hit_rate"] for r in results) / total,
+            "hit_rate": avg_retrieval_metric("hit_rate"),
+            "mrr": avg_retrieval_metric("mrr"),
+            "retrieval_scored_cases": len(scored_retrieval_results),
             "agreement_rate": sum(r["judge"]["agreement_rate"] for r in results) / total
         }
     }
