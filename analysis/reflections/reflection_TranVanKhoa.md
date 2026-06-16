@@ -1,8 +1,8 @@
-# Bao cao ca nhan - Tran Van Khoa - 2A202600827
+# Báo cáo cá nhân - Trần Văn Khoa - 2A202600827
 
 ## 0. Thong tin chung
 
-- **Ho ten:** Tran Van Khoa
+- **Họ tên:** Trần Văn Khoa
 - **MSSV:** 2A202600827
 - **Bai lab:** Day 14 - AI Evaluation Factory
 - **File nop ca nhan:** `analysis/reflections/reflection_TranVanKhoa.md`
