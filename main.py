@@ -5,23 +5,32 @@ import time
 from engine.runner import BenchmarkRunner
 from agent.main_agent import MainAgent
 
-# Giả lập các components Expert
+from engine.retrieval_eval import RetrievalEvaluator
+from engine.llm_judge import LLMJudge
+
 class ExpertEvaluator:
+    def __init__(self):
+        self.evaluator = RetrievalEvaluator()
+
     async def score(self, case, resp): 
-        # Giả lập tính toán Hit Rate và MRR
+        expected_ids = case.get("expected_retrieval_ids", [])
+        retrieved_ids = case.get("retrieved_ids", [])
+        
+        hit_rate = self.evaluator.calculate_hit_rate(expected_ids, retrieved_ids)
+        mrr = self.evaluator.calculate_mrr(expected_ids, retrieved_ids)
+        
         return {
             "faithfulness": 0.9, 
             "relevancy": 0.8,
-            "retrieval": {"hit_rate": 1.0, "mrr": 0.5}
+            "retrieval": {"hit_rate": hit_rate, "mrr": mrr}
         }
 
 class MultiModelJudge:
+    def __init__(self):
+        self.judge = LLMJudge()
+
     async def evaluate_multi_judge(self, q, a, gt): 
-        return {
-            "final_score": 4.5, 
-            "agreement_rate": 0.8,
-            "reasoning": "Cả 2 model đồng ý đây là câu trả lời tốt."
-        }
+        return await self.judge.evaluate_multi_judge(q, a, gt)
 
 async def run_benchmark_with_results(agent_version: str):
     print(f"🚀 Khởi động Benchmark cho {agent_version}...")
@@ -37,7 +46,7 @@ async def run_benchmark_with_results(agent_version: str):
         print("❌ File data/golden_set.jsonl rỗng. Hãy tạo ít nhất 1 test case.")
         return None, None
 
-    runner = BenchmarkRunner(MainAgent(), ExpertEvaluator(), MultiModelJudge())
+    runner = BenchmarkRunner(MainAgent(agent_version), ExpertEvaluator(), MultiModelJudge())
     results = await runner.run_all(dataset)
 
     total = len(results)

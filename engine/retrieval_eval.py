@@ -28,5 +28,24 @@ class RetrievalEvaluator:
         Chạy eval cho toàn bộ bộ dữ liệu.
         Dataset cần có trường 'expected_retrieval_ids' và Agent trả về 'retrieved_ids'.
         """
-        # Placeholder logic
-        return {"avg_hit_rate": 0.85, "avg_mrr": 0.72}
+        hits = []
+        mrrs = []
+        for case in dataset:
+            expected_ids = case.get("expected_retrieval_ids", [])
+            retrieved_ids = case.get("retrieved_ids", [])
+            
+            # Tính Hit Rate (mặc định Top-3)
+            hit = self.calculate_hit_rate(expected_ids, retrieved_ids, top_k=3)
+            hits.append(hit)
+            
+            # Tính MRR
+            mrr = self.calculate_mrr(expected_ids, retrieved_ids)
+            mrrs.append(mrr)
+            
+        avg_hit_rate = sum(hits) / len(hits) if hits else 0.0
+        avg_mrr = sum(mrrs) / len(mrrs) if mrrs else 0.0
+        
+        return {
+            "avg_hit_rate": avg_hit_rate,
+            "avg_mrr": avg_mrr
+        }
