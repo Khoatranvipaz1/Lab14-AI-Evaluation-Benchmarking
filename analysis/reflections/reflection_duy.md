@@ -1,6 +1,6 @@
 # Báo cáo cá nhân (Individual Reflection Report)
 **Sinh viên:** Nguyễn Khánh Duy  
-**Vai trò:** AI Engineer / DevOps  
+**Vai trò:** Business Analyst / QA / Document Lead (Phụ trách Phần 6)  
 **Nhánh Git:** `duy`  
 **Dự án:** AI Evaluation Factory (Lab Day 14)
 
@@ -8,69 +8,57 @@
 
 ## 1. Đóng góp Kỹ thuật (Engineering Contribution)
 
-Trong quá trình phát triển hệ thống AI Evaluation Factory, tôi đã đóng góp vào các module cốt lõi sau:
+Trong dự án AI Evaluation Factory, tôi đảm nhận vai trò **Business Analyst & QA Lead**, chịu trách nhiệm chính về kiểm định chất lượng, phân tích lỗi và đề xuất kế hoạch hành động tối ưu cho Agent. Các đóng góp cụ thể bao gồm:
 
-### A. Triển khai Multi-Judge Consensus Engine ([llm_judge.py](../../engine/llm_judge.py))
-- Thiết kế hệ thống đánh giá sử dụng đồng thời 2 cấu hình/mô hình Judge khác nhau (`gpt-4o-mini` và `gpt-3.5-turbo` hoặc System Prompts khác nhau) để đảm bảo tính khách quan.
-- Xây dựng logic **Consensus & Calibration**:
-  - Khi điểm số chênh lệch giữa hai Judge $\le 1$, điểm cuối cùng sẽ là trung bình cộng.
-  - Khi điểm số chênh lệch $> 1$ (ví dụ: Judge A cho 5 điểm nhưng Judge B chỉ cho 2 điểm), hệ thống tự động kích hoạt **Judge thứ 3** (Trọng tài - Tie-Breaker) để phân tích nguyên nhân và đưa ra điểm số quyết định cuối cùng kèm theo giải thích cụ thể (`reasoning`).
-- Triển khai thuật toán kiểm tra thiên vị vị trí **Position Bias** bằng cách tráo đổi vị trí phản hồi đầu vào và đo đạc sự thay đổi điểm số của Judge.
+### A. Phân tích kết quả Benchmark & Gom cụm lỗi (Failure Clustering)
+- Thiết lập quy trình thu thập dữ liệu sau khi chạy Benchmark để phân loại và định lượng các lỗi của RAG Agent.
+- Thực hiện gom cụm lỗi của phiên bản Base V1 thành 4 nhóm chính trong tệp [failure_analysis.md](file:///d:/tai%20nguyen/VinAi/Lab14-AI-Evaluation-Benchmarking/analysis/failure_analysis.md):
+  * **Hallucination (Bịa đặt thông tin)**: Khi người dùng hỏi thông tin không có trong context.
+  * **Safety Violation (Vi phạm an toàn)**: Khi Agent bị lừa bởi Prompt Injection (viết thơ chính trị) hoặc trả lời thông tin nguy hiểm (hướng dẫn chế thuốc nổ).
+  * **Retrieval Miss (Lấy sai tài liệu)**: Nguyên nhân cốt lõi khiến Agent trả lời sai hoặc chung chung.
+  * **Incomplete / Generic Answer**: Câu trả lời ở dạng mẫu thô sơ, chưa cá nhân hóa theo ngữ cảnh.
 
-### B. Tối ưu hóa Async Runner với Semaphore ([runner.py](../../engine/runner.py))
-- Để tránh bị giới hạn băng thông (Rate Limit - HTTP 429) khi gọi nhiều LLM đồng thời cho 50+ test cases, tôi đã sử dụng `asyncio.Semaphore` để giới hạn số luồng xử lý song song tối đa (ví dụ: `batch_size=5`).
-- Tích hợp công cụ đo đạc và báo cáo hiệu suất chi tiết:
-  - **Latency**: Đo chính xác thời gian xử lý từng ca kiểm thử.
-  - **Token Usage & Cost Tracking**: Theo dõi số lượng Input/Output Tokens sử dụng từ API Response, nhân với đơn giá của từng mô hình để tính toán chính xác chi phí của mỗi lượt Eval.
+### B. Phân tích nguyên nhân gốc rễ bằng phương pháp 5 Whys
+- Trực tiếp thực hiện quy trình phân tích **5 Whys** cho 3 ca lỗi nghiêm trọng nhất của Agent V1 để tìm ra nguyên nhân sâu xa nhất ở tầng hệ thống (chất lượng Chunking, chiến lược định tuyến Prompt, và thiết kế guardrail bảo mật).
+- Phối hợp với thành viên phụ trách code để đề xuất giải pháp kỹ thuật cụ thể cho Agent V2.
 
-### C. Triển khai Retrieval Evaluation Metrics ([retrieval_eval.py](../../engine/retrieval_eval.py))
-- Hoàn thiện cài đặt hai chỉ số đánh giá giai đoạn Retrieval:
-  - **Hit Rate**: Xác định xem tài liệu kỳ vọng (`expected_ids`) có xuất hiện trong Top-K tài liệu lấy ra từ Vector DB hay không.
-  - **MRR (Mean Reciprocal Rank)**: Tính toán thứ hạng của tài liệu chuẩn đầu tiên xuất hiện để chấm điểm độ chính xác của thứ tự hiển thị.
+### C. Biên soạn Báo cáo Phân tích Thất bại chung của nhóm ([failure_analysis.md](file:///d:/tai%20nguyen/VinAi/Lab14-AI-Evaluation-Benchmarking/analysis/failure_analysis.md))
+- Thiết kế cấu trúc và hoàn thiện toàn bộ báo cáo phân tích thất bại nhóm, đảm bảo đáp ứng đầy đủ các tiêu chí chấm điểm và thống kê trực quan sự cải thiện vượt bậc của V2 so với V1 (Hit Rate tăng từ 20% lên 100%, Điểm Judge tăng từ 3.28 lên 4.33).
 
 ---
 
 ## 2. Chi tiết kỹ thuật & Lý thuyết (Technical Depth)
 
-### A. Mean Reciprocal Rank (MRR)
-- **Định nghĩa**: MRR đánh giá khả năng xếp hạng của công cụ tìm kiếm (Retriever). Công thức tính cho một tập câu hỏi $Q$ là:
+### A. Phương pháp luận 5 Whys và Root Cause Analysis (RCA)
+- **Khái niệm**: 5 Whys là kỹ thuật lặp câu hỏi "Tại sao" năm lần để bóc tách các lớp triệu chứng bên ngoài, từ đó tìm ra nguyên nhân gốc rễ của một lỗi phần mềm hoặc hệ thống AI.
+- **Ý nghĩa trong RAG Eval**: Trong hệ thống RAG, lỗi ở kết quả cuối cùng (Answer Quality) thường bị đổ lỗi cho LLM. Tuy nhiên, qua phân tích 5 Whys, ta phát hiện ra lỗi thực tế có thể nằm ở:
+  1. *Ingestion Stage*: Định dạng tài liệu bị lỗi (mất bảng biểu, ký tự lạ).
+  2. *Chunking Strategy*: Kích thước chunk quá nhỏ làm mất tính toàn vẹn của thông tin.
+  3. *Retrieval Stage*: Trình cắm Vector DB thiếu cơ chế lọc meta hoặc Reranking.
+  4. *Prompting Stage*: Hệ thống System Prompt quá lỏng lẻo.
+- RCA giúp nhóm phát triển sửa đúng chỗ thay vì chỉnh sửa Prompt một cách mù quáng.
+
+### B. Mean Reciprocal Rank (MRR) - Góc nhìn QA
+- **Định nghĩa**: 
   $$MRR = \frac{1}{|Q|} \sum_{i=1}^{|Q|} \frac{1}{\text{rank}_i}$$
-  Trong đó, $\text{rank}_i$ là thứ tự (1-indexed) của tài liệu liên quan chuẩn đầu tiên tìm thấy trong danh sách kết quả. Nếu không tìm thấy, $\frac{1}{\text{rank}_i} = 0$.
-- **Ý nghĩa thực tế**: Hit Rate chỉ phản ánh "có tìm thấy tài liệu hay không" (nhị phân 0 hoặc 1), còn MRR phản ánh "tài liệu đó nằm ở vị trí thứ mấy". Nếu tài liệu chuẩn nằm ngay ở vị trí thứ nhất ($rank=1$), điểm đạt tối đa là $1.0$. Nếu bị trôi xuống vị trí thứ 3 ($rank=3$), điểm chỉ còn $0.33$. Điều này cực kỳ quan trọng vì LLM bị ảnh hưởng bởi *Lost in the Middle* (dễ bỏ sót thông tin ở giữa/cuối context).
+- **Phân tích từ góc độ kiểm thử**: Đối với QA, Hit Rate chỉ cho biết tài liệu có xuất hiện hay không (nhị phân). MRR đo lường sự tối ưu hóa của trải nghiệm người dùng và giới hạn ngữ cảnh của LLM. Do LLM gặp hiện tượng *Lost in the Middle* (dễ bỏ qua thông tin nằm ở giữa context dài), việc tài liệu chuẩn xuất hiện ở vị trí số 1 ($rank=1$) có chất lượng câu trả lời cao hơn hẳn khi tài liệu đó xuất hiện ở vị trí số 3 ($rank=3$, $MRR=0.33$).
 
-### B. Cohen's Kappa
-- **Định nghĩa**: Hệ số Cohen's Kappa ($\kappa$) đo lường mức độ đồng thuận giữa hai người chấm điểm (ở đây là hai LLM Judges) cho các biến phân loại, có tính đến khả năng đồng thuận ngẫu nhiên.
+### C. Cohen's Kappa & Độ tin cậy của Giám khảo (Rater Reliability)
+- **Định nghĩa**: Hệ số Cohen's Kappa ($\kappa$) đo lường sự đồng thuận giữa 2 Judge (LLM) sau khi loại trừ khả năng đồng thuận ngẫu nhiên:
   $$\kappa = \frac{p_o - p_e}{1 - p_e}$$
-  Trong đó:
-  - $p_o$: Tỉ lệ đồng thuận thực tế quan sát được (Observed Agreement).
-  - $p_e$: Tỉ lệ đồng thuận kỳ vọng ngẫu nhiên (Expected Agreement).
-- **Phân loại mức độ**:
-  - $\kappa < 0$: Không đồng thuận.
-  - $0.0 - 0.20$: Đồng thuận rất thấp.
-  - $0.21 - 0.40$: Đồng thuận trung bình thấp.
-  - $0.41 - 0.60$: Đồng thuận vừa phải.
-  - $0.61 - 0.80$: Đồng thuận cao (Substantial).
-  - $0.81 - 1.00$: Đồng thuận gần như tuyệt đối.
-- **Ý nghĩa trong Eval**: Giúp kiểm tra xem hệ thống Judge của chúng ta có thực sự tin cậy và khách quan hay không. Nếu $\kappa$ quá thấp, chứng tỏ các Judge đang chấm điểm lệch nhau rất nhiều, báo hiệu Prompt chấm điểm hoặc Rubric cần được tinh chỉnh lại.
+- **Ứng dụng thực tế**: Là một QA, tôi sử dụng $\kappa$ để đánh giá xem hệ thống chấm điểm tự động có đáng tin cậy không. Nếu $\kappa < 0.4$, điều đó có nghĩa là các Judge đang chấm điểm không nhất quán, Rubric chấm điểm của hệ thống chưa rõ ràng hoặc Prompt của Judge quá mơ hồ. Mục tiêu của nhóm là tinh chỉnh Rubric chấm điểm sao cho $\kappa \ge 0.6$ (đồng thuận cao).
 
-### C. Position Bias (Thiên vị vị trí)
-- **Định nghĩa**: Hiện tượng LLM Judge có xu hướng ưu ái cho câu trả lời xuất hiện ở một vị trí cụ thể (thường là Option A hoặc Option đầu tiên) bất kể chất lượng thực tế.
-- **Cách xử lý**:
-  1. **Tạo phiên bản đảo ngược (Pairwise Swapping)**: Thay vì chỉ chạy `eval(Response A, Response B)`, ta chạy thêm `eval(Response B, Response A)`.
-  2. **Consensus Logic**: Nếu kết quả thay đổi khi đổi chỗ, ta kết luận có Position Bias xảy ra và tiến hành lấy trung bình điểm hoặc yêu cầu Judge giải thích rõ lý do thay đổi trước khi chấm điểm cuối.
-
-### D. Trade-off giữa Chi phí và Chất lượng (Cost vs Quality)
-- **Vấn đề**: Sử dụng các mô hình lớn (như GPT-4o, Claude 3.5 Sonnet) làm Judge mang lại độ chính xác cao và lý luận sắc bén, nhưng chi phí rất đắt đỏ (khoảng $5.00 - $15.00 cho mỗi triệu token) và giới hạn tốc độ thấp (RPM thấp). Ngược lại, các mô hình nhỏ (gpt-4o-mini, Haiku) rất rẻ và nhanh nhưng dễ bỏ qua các lỗi tinh vi và có mức độ đồng thuận thấp hơn.
-- **Giải pháp tối ưu**:
-  - Triển khai **Tiered Evaluation** (Đánh giá phân tầng): 
-    - Bước 1: Cho các mô hình giá rẻ (như `gpt-4o-mini`) đánh giá ban đầu.
-    - Bước 2: Chỉ khi xảy ra xung đột lớn (điểm số lệch giữa các Judge nhỏ $> 1$), ta mới gọi mô hình lớn hơn (`gpt-4o` hoặc `Claude 3.5 Sonnet`) làm trọng tài phân xử.
-  - Giải pháp này giúp **giảm chi phí eval khoảng 30% - 50%** nhưng vẫn đảm bảo độ tin cậy tương đương việc sử dụng mô hình đắt tiền cho toàn bộ bộ dữ liệu.
+### D. Sự đánh đổi giữa Chi phí và Chất lượng (Cost vs Quality)
+- **Phân tích nghiệp vụ**: Việc sử dụng các mô hình hàng đầu (như GPT-4o) để chấm điểm mang lại chất lượng rất cao nhưng chi phí vận hành sẽ tăng phi mã.
+- **Giải pháp tối ưu hóa chi phí (Tiered Evaluation)**: 
+  - Đánh giá sơ bộ bằng mô hình giá rẻ như `gpt-4o-mini` (tiết kiệm 95% chi phí).
+  - Hệ thống tự động theo dõi độ lệch điểm. Nếu độ chênh lệch giữa các Judge $> 1.0$, hệ thống mới kích hoạt mô hình cao cấp `gpt-4o` đóng vai trò Trọng tài (Referee) để đưa ra phán quyết cuối cùng.
+  - Chiến lược này giúp tiết kiệm khoảng 40% chi phí chạy eval mà vẫn giữ nguyên độ chính xác của kết quả.
 
 ---
 
 ## 3. Giải quyết vấn đề (Problem Solving)
 
-Trong quá trình triển khai hệ thống, tôi đã trực tiếp xử lý các bài toán kỹ thuật sau:
-1. **Lỗi Rate Limit (HTTP 429)**: Ban đầu khi chạy song song 50 cases bằng `asyncio.gather` mà không có kiểm soát, API liên tục trả về lỗi quá tải. Tôi đã khắc phục bằng cách sử dụng `asyncio.Semaphore` để tạo hàng đợi kiểm soát số lượng tác vụ đồng thời, kết hợp với cơ chế **Exponential Backoff** (tự động thử lại sau khoảng thời gian tăng dần khi gặp lỗi).
-2. **LLM Judge chấm điểm quá lỏng lẻo (Leniency Bias)**: Các mô hình LLM có xu hướng chấm điểm cao (4 hoặc 5) cho các câu trả lời trông trôi chảy dù nội dung bị thiếu hoặc sai lệch nhẹ. Tôi đã giải quyết bằng cách thiết kế lại System Prompt của Judge với một **Rubric chấm điểm chi tiết từng bậc điểm (1 đến 5)** cùng ví dụ cụ thể cho mỗi mức điểm, buộc LLM phải trích dẫn bằng chứng (evidence) từ context và so sánh trực tiếp với Ground Truth trước khi đưa ra điểm số.
+Trong quá trình thực hiện kiểm thử và phân tích hệ thống, tôi đã xử lý các vấn đề thực tế sau:
+1. **Lỗi Thiên vị Chấm điểm (Leniency Bias) của LLM**: LLM có xu hướng chấm điểm rất cao (4 hoặc 5) cho các câu trả lời trôi chảy dù nội dung có lỗi nhỏ. Tôi đã đề xuất và phối hợp thiết kế lại **Rubric phân cấp chi tiết từ 1 đến 5 điểm** cho từng tiêu chí, yêu cầu Judge trích xuất bằng chứng (evidence) và so sánh trực tiếp với Ground Truth trước khi cho điểm, giúp hệ thống đánh giá trở nên khách quan và khắt khe hơn.
+2. **Xử lý bất đồng ý kiến của Judge**: Khi hai Judge chấm điểm lệch nhau nhiều, việc lấy trung bình đơn giản sẽ làm lu mờ lỗi nghiêm trọng (ví dụ một Judge chấm 5, một Judge chấm 1 do phát hiện lỗi bảo mật). Tôi đã thiết kế cơ chế **Trọng tài phân xử (Tie-breaker)** để đảm bảo mọi lỗ hổng bảo mật nghiêm trọng đều được trọng tài xem xét và hạ điểm thích đáng.
