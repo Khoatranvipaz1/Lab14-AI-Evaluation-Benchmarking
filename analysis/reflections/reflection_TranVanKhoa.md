@@ -1,10 +1,11 @@
-# Bao cao ca nhan - Khoa Tran
+# Bao cao ca nhan - Tran Van Khoa - 2A202600827
 
 ## 0. Thong tin chung
 
-- **Ho ten:** Khoa Tran
+- **Ho ten:** Tran Van Khoa
+- **MSSV:** 2A202600827
 - **Bai lab:** Day 14 - AI Evaluation Factory
-- **File nop ca nhan:** `analysis/reflections/reflection_KhoaTran.md`
+- **File nop ca nhan:** `analysis/reflections/reflection_TranVanKhoa.md`
 - **Vai tro chinh:** Regression Testing & Auto-Gate Owner
 - **Hang muc phu trach theo rubric nhom:** Muc 4 - Regression Testing & Auto-Gate (10 diem)
 
