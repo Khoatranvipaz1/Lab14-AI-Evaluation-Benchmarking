@@ -23,9 +23,15 @@ class BenchmarkRunner:
         
         # 3. Chạy Multi-Judge
         judge_result = await self.judge.evaluate_multi_judge(
-            test_case["question"], 
-            response["answer"], 
-            test_case["expected_answer"]
+            question=test_case["question"],
+            answer=response["answer"],
+            ground_truth=test_case["expected_answer"],
+            contexts=response.get("contexts", []),
+            metadata={
+                "case_id": test_case.get("id"),
+                "case_type": test_case.get("metadata", {}).get("type"),
+                "retrieved_ids": response.get("retrieved_ids", []),
+            },
         )
         
         return {
